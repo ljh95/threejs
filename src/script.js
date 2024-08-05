@@ -1,8 +1,8 @@
-//   Q. what is bevel?
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import GUI from "lil-gui";
-import { FontLoader, TextGeometry } from "three/examples/jsm/Addons.js";
+import { RectAreaLightHelper } from "three/examples/jsm/Addons.js";
+console.log(RectAreaLightHelper);
 
 /**
  * Base
@@ -16,74 +16,100 @@ const canvas = document.querySelector("canvas.webgl");
 // Scene
 const scene = new THREE.Scene();
 
-// Axes helper
-// const axesHelper = new THREE.AxesHelper();
-// scene.add(axesHelper);
+/**
+ * Lights
+ */
 
 /**
- * Textures
+ * ambient 라이트는 모든 위치에서 빛을 비춘다.
+ * 따라서 유니폼처럼
+ * 실제 환경에서 빛이 반사되면서 실제 빚추는곳 외에도 사물을 볼 수 있게 해주기 때문에
+ * AmbientLight는 그런 효과, 반사되는 빛을 표현할 때 쓰인다.
  */
-const textureLoader = new THREE.TextureLoader();
-const matcapTexture = textureLoader.load("/textures/matcaps/8.png");
-// matcapTexture.colorSpace = THREE.SRGBColorSpace;
-/**
- * Fonts
- */
-const fontLoader = new FontLoader();
-fontLoader.load("/fonts/helvetiker_regular.typeface.json", (font) => {
-  const textGeometry = new TextGeometry("Jong Ho", {
-    font,
-    size: 0.5,
-    depth: 0.2,
-    curveSegments: 5, // 더 적은 정확도..?
-    bevelEnabled: true,
-    bevelThickness: 0.03,
-    bevelSize: 0.02,
-    bevelOffset: 0,
-    bevelSegments: 4, // 더 적은 정확도..?
-  });
-  //   textGeometry.computeBoundingBox();
-  //   textGeometry.translate(
-  //     -(textGeometry.boundingBox.max.x - 0.02) * 0.5,
-  //     -(textGeometry.boundingBox.max.y - 0.02) * 0.5,
-  //     -(textGeometry.boundingBox.max.z - 0.03) * 0.5
-  //   );
-  textGeometry.center();
+const ambientLight = new THREE.AmbientLight(0xfffffff, 1);
+scene.add(ambientLight);
 
-  textGeometry.computeBoundingBox();
+const directionalLight = new THREE.DirectionalLight(0x00fffc, 0.9);
+directionalLight.position.set(1, 0.25, 0);
+scene.add(directionalLight);
 
-  const material = new THREE.MeshMatcapMaterial({ matcap: matcapTexture });
-  const text = new THREE.Mesh(textGeometry, material);
-  scene.add(text);
+// 2가지 색상을 다룬다.
+// 하늘과 땅 표현?
+const hemisphereLight = new THREE.HemisphereLight(0xff0000, 0x0000ff, 0.9);
+scene.add(hemisphereLight);
 
-  const donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 20, 45);
+const pointLight = new THREE.PointLight(0xff9000, 1.5);
+pointLight.position.set(1, -0.5, 1);
+scene.add(pointLight);
 
-  for (let i = 0; i < 100; i++) {
-    const donut = new THREE.Mesh(donutGeometry, material);
+const reactAearLight = new THREE.RectAreaLight(0x4e00ff, 6, 1, 2);
+reactAearLight.position.set(-1.5, 0, 1.5);
+reactAearLight.lookAt(new THREE.Vector3());
+scene.add(reactAearLight);
 
-    donut.position.x = (Math.random() - 0.5) * 10;
-    donut.position.y = (Math.random() - 0.5) * 10;
-    donut.position.z = (Math.random() - 0.5) * 10;
+const spotLight = new THREE.SpotLight(
+  0x78ff00,
+  4.5,
+  20,
+  Math.PI * 0.05,
+  0.9,
+  1
+);
+spotLight.position.set(0, 2, 3);
+scene.add(spotLight);
 
-    donut.rotation.x = Math.random() * Math.PI;
-    donut.rotation.y = Math.random() * Math.PI;
+spotLight.target.position.x = -0.75;
+scene.add(spotLight.target);
 
-    const scale = Math.random();
-    donut.scale.set(scale, scale, scale);
+// Helpers
+const hemisphereLightHelper = new THREE.HemisphereLightHelper(
+  hemisphereLight,
+  0.2
+);
+scene.add(hemisphereLightHelper);
 
-    scene.add(donut);
-  }
+const directionalLightHelper = new THREE.DirectionalLightHelper(
+  directionalLight,
+  0.2
+);
+scene.add(directionalLightHelper);
+
+const pointLightHelper = new THREE.PointLightHelper(pointLight, 0.2);
+scene.add(pointLightHelper);
+
+const spotLightHelper = new THREE.SpotLightHelper(spotLight);
+scene.add(spotLightHelper);
+
+window.requestAnimationFrame(() => {
+  spotLightHelper.update();
 });
 
+const rectAreaLightHelper = new RectAreaLightHelper(reactAearLight);
+scene.add(rectAreaLightHelper);
 /**
- * Object
+ * Objects
  */
-// const cube = new THREE.Mesh(
-//   new THREE.BoxGeometry(1, 1, 1),
-//   new THREE.MeshBasicMaterial()
-// );
+// Material
+const material = new THREE.MeshStandardMaterial();
+material.roughness = 0.4;
 
-// scene.add(cube);
+// Objects
+const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), material);
+sphere.position.x = -1.5;
+
+const cube = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.75, 0.75), material);
+
+const torus = new THREE.Mesh(
+  new THREE.TorusGeometry(0.3, 0.2, 32, 64),
+  material
+);
+torus.position.x = 1.5;
+
+const plane = new THREE.Mesh(new THREE.PlaneGeometry(5, 5), material);
+plane.rotation.x = -Math.PI * 0.5;
+plane.position.y = -0.65;
+
+scene.add(sphere, cube, torus, plane);
 
 /**
  * Sizes
@@ -142,6 +168,15 @@ const clock = new THREE.Clock();
 
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
+
+  // Update objects
+  sphere.rotation.y = 0.1 * elapsedTime;
+  cube.rotation.y = 0.1 * elapsedTime;
+  torus.rotation.y = 0.1 * elapsedTime;
+
+  sphere.rotation.x = 0.15 * elapsedTime;
+  cube.rotation.x = 0.15 * elapsedTime;
+  torus.rotation.x = 0.15 * elapsedTime;
 
   // Update controls
   controls.update();
